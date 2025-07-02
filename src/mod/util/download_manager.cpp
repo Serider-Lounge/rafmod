@@ -138,9 +138,9 @@ namespace Mod::Util::Download_Manager
 			std::string str(cvar_banned_maps.GetString());
 			const auto tokens{vi::split_str(str, ",")};
 
-            for (auto &token : tokens) {
-                banned_maps.insert(std::string(token));
-            }
+			for (auto &token : tokens) {
+				banned_maps.insert(std::string(token));
+			}
 			if (server_activated)
 				ResetVoteMapList();
 		});
@@ -704,7 +704,7 @@ namespace Mod::Util::Download_Manager
 
 		int amount = 8;
 		while ((late_dl_all_missions_ent = readdir(late_dl_all_missions_dir)) != nullptr) {
-			if (!StringHasPrefix(late_dl_all_missions_ent->d_name, map) && StringStartsWith(late_dl_all_missions_ent->d_name, "mvm_") && StringEndsWith(late_dl_all_missions_ent->d_name, ".pop")) {
+			if (!StringHasPrefix(late_dl_all_missions_ent->d_name, map) && StringEndsWith(late_dl_all_missions_ent->d_name, ".pop")) {
 				snprintf(respath, sizeof(respath), "%s%s", "scripts/population/",late_dl_all_missions_ent->d_name);
 				KeyValues *kv = new KeyValues("kv");
 				kv->UsesConditionals(false);
@@ -887,7 +887,7 @@ namespace Mod::Util::Download_Manager
 
 		FileFindHandle_t mapHandle;
 		// Find maps in all game directories
-		for (const char *mapName = filesystem->FindFirstEx("maps/mvm_*.bsp", "GAME", &mapHandle);
+		for (const char *mapName = filesystem->FindFirstEx("maps/*.bsp", "GAME", &mapHandle);
 						mapName != nullptr; mapName = filesystem->FindNext(mapHandle)) {
 			//Remove extension from the map name
 			std::string mapNameNoExt(mapName, strlen(mapName) - 4);
@@ -934,7 +934,7 @@ namespace Mod::Util::Download_Manager
 				Msg("%s\n", entry.second.c_str() + pathfullLength);
 			}
 		}
-    	filesystem->WriteFile("missingfiles.txt", nullptr, buf);
+		filesystem->WriteFile("missingfiles.txt", nullptr, buf);
 	}
 
 	KeyValues *kvBannedMissions = nullptr;
@@ -981,7 +981,7 @@ namespace Mod::Util::Download_Manager
 		int files = 0;
 		// Find maps in all game directories
 		if (*cvar_mappath.GetString() == '\0') {
-			for (const char *mapName = filesystem->FindFirstEx("maps/mvm_*.bsp", "GAME", &mapHandle);
+			for (const char *mapName = filesystem->FindFirstEx("maps/*.bsp", "GAME", &mapHandle);
 							mapName != nullptr; mapName = filesystem->FindNext(mapHandle)) {
 
 				AddMapToVoteList(mapName, kvcat, files, maplistStr);
@@ -995,7 +995,7 @@ namespace Mod::Util::Download_Manager
 
 			if ((dir = opendir(path.c_str())) != nullptr) {
 				while ((ent = readdir(dir)) != nullptr) {
-					if (StringStartsWith(ent->d_name, "mvm_") && StringEndsWith(ent->d_name, ".bsp")) {
+					if (StringEndsWith(ent->d_name, ".bsp")) {
 						AddMapToVoteList(ent->d_name, kvcat, files, maplistStr);
 					}
 				}
@@ -1286,10 +1286,10 @@ namespace Mod::Util::Download_Manager
 
 	DETOUR_DECL_MEMBER(bool, CPopulationManager_Parse)
 	{
-        auto ret = DETOUR_MEMBER_CALL();
+		auto ret = DETOUR_MEMBER_CALL();
 		GenerateLateDownloadablesCurrentMission();
 		return ret;
-    }
+	}
 
 	bool OnReceiveFile(const char *fileName, unsigned int transferID, IClient *client)
 	{
@@ -1348,7 +1348,7 @@ namespace Mod::Util::Download_Manager
 		if (OnReceiveFile(data->filename, data->transferID, rtti_cast<IClient *>(MessageHandler))) return true;
 
 		return DETOUR_STATIC_CALL(data, MessageHandler);
-    }
+	}
 
 	DETOUR_DECL_MEMBER(void, CServerPlugin_OnQueryCvarValueFinished, QueryCvarCookie_t iCookie, edict_t *pPlayerEntity, EQueryCvarValueStatus eStatus, const char *pCvarName, const char *pCvarValue)
 	{
@@ -1367,7 +1367,7 @@ namespace Mod::Util::Download_Manager
 			info.active = false;
 		}
 		
-    }
+	}
 
 	DETOUR_DECL_MEMBER(void, CTFGameRules_OnPlayerSpawned, CTFPlayer *player)
 	{
@@ -1512,7 +1512,7 @@ namespace Mod::Util::Download_Manager
 			}
 
 			char path_sm[PLATFORM_MAX_PATH];
-        	g_pSM->BuildPath(Path_SM,path_sm,sizeof(path_sm),"data/latedl_curmission_only/");
+			g_pSM->BuildPath(Path_SM,path_sm,sizeof(path_sm),"data/latedl_curmission_only/");
 			latedl_curmission_only_path = path_sm;
 			mkdir(path_sm, 0766);
 
@@ -1573,15 +1573,13 @@ namespace Mod::Util::Download_Manager
 			snprintf(poppath, sizeof(poppath), "%s/%s/scripts/population", game_path, cvar_downloadpath.GetString());
 			while ((ent = readdir(dir)) != nullptr) {
 				
-				if (StringEndsWith(ent->d_name, ".pop") && (StringHasPrefix(ent->d_name, map) || !StringStartsWith(ent->d_name, "mvm_"))) {
+			   if (StringEndsWith(ent->d_name, ".pop") && StringHasPrefix(ent->d_name, map)) {
 					snprintf(filepath, sizeof(filepath), "%s/%s", poppath,ent->d_name);
 					struct stat stats;
 					stat(filepath, &stats);
 					if (stats.st_mtime > updateTime && stats.st_mtime > updateTime) {
 						updateTime = stats.st_mtime;
-						if (!StringStartsWith(ent->d_name, "mvm_")) {
-							ScanTemplateFileChange(ent->d_name);
-						}
+						ScanTemplateFileChange(ent->d_name);
 					}
 				}
 				if (i++ > 32) return dir;
@@ -1775,12 +1773,10 @@ namespace Mod::Util::Download_Manager
 							// Look for popfile updates
 							if (event->wd == inotify_wd) {
 								const char *name = event->name;
-								if (StringEndsWith(name, ".pop") && (StringHasPrefix(name, map) || !StringStartsWith(name, "mvm_"))) {
-									updated = true;
-									if (!StringStartsWith(name, "mvm_")) {
-										ScanTemplateFileChange(name);
-									}
-								}
+							   if (StringEndsWith(name, ".pop") && StringHasPrefix(name, map)) {
+								   updated = true;
+								   ScanTemplateFileChange(name);
+							   }
 							}
 							// Look for missing files
 							else {
