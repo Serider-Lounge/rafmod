@@ -27,8 +27,8 @@ namespace Mod::MvM::FriendlyFire
 	
 	DETOUR_DECL_MEMBER(bool, CTFGameRules_FPlayerCanTakeDamage, CBasePlayer *pPlayer, CBaseEntity *pAttacker, const CTakeDamageInfo& info)
 	{
-		if (pPlayer != nullptr && pAttacker != nullptr && TFGameRules()->IsMannVsMachineMode() &&
-			pPlayer->GetTeamNumber() == TF_TEAM_RED && pAttacker->GetTeamNumber() == TF_TEAM_RED &&
+		if (pPlayer != nullptr && pAttacker != nullptr &&
+			pPlayer->GetTeamNumber() == pAttacker->GetTeamNumber() &&
 			InMvMFriendlyFireTime()) {
 			return true;
 		}
@@ -41,7 +41,7 @@ namespace Mod::MvM::FriendlyFire
 		auto player = reinterpret_cast<CTFPlayer *>(this);
 		
 		/* a bit hacky: turn on lag compensation for EVERYTHING for FF mode */
-		if (cvar_lagcompensate.GetBool() && TFGameRules()->IsMannVsMachineMode() && player->GetTeamNumber() == TF_TEAM_RED && InMvMFriendlyFireTime()) {
+		if (cvar_lagcompensate.GetBool() && InMvMFriendlyFireTime()) {
 			return true;
 		}
 		
